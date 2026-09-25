@@ -32,5 +32,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build -w apps/desktop
-      - run: sudo apt-get update && sudo apt-get install -y xvfb
-      - run: xvfb-run -a npm run test:e2e -w apps/desktop
+      - run: sudo apt-get update && sudo apt-get install -y xvfb xauth
+      - run: ELECTRON_DISABLE_SANDBOX=1 xvfb-run -a npm run test:e2e -w apps/desktop

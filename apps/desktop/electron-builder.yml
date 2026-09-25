@@ -1,5 +1,8 @@
 appId: com.experiments.electron
 productName: ExperimentsElectron
+# defaults to a sanitized package.json `name` (@experiments-electron/desktop),
+# which breaks the Linux AppImage build (invalid path characters). Set explicitly.
+executableName: ExperimentsElectron
 directories:
   output: release
 files:

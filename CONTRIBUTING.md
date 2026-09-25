@@ -4,19 +4,16 @@ Full dev pipeline for this repo. See [README.md](README.md) for the high-level s
 
 ## 1. Getting started
 
-Open in VS Code, "Reopen in Container" (needs Docker running — see [.devcontainer](.devcontainer)). It builds an image with Electron's Linux GUI deps + xvfb and runs `npm install` for you.
-
-Without the container: any machine with Node `^20.19.0 || >=22.12.0` (see root `package.json` `engines`), then:
+Open in VS Code, "Reopen in Container" (needs Docker running — see [.devcontainer](.devcontainer)). It builds an image with Electron's Linux GUI deps + xvfb and runs `npm install` for you. Prefer the container over running `npm install`/scripts on the host directly — this repo pulls in hundreds of transitive npm packages, any of which can run arbitrary code at install time; the container contains that.
 
 ```bash
-npm install
+npm run dev:web                # vite dev server, http://localhost:3000 (forwarded automatically)
+npm run dev:desktop:headless   # electron-vite dev under xvfb, for logic/tests — no visible window
 ```
 
-```bash
-npm run dev:desktop            # electron-vite dev, HMR, opens a window
-npm run dev:desktop:headless   # same, under xvfb (no display, e.g. in the container)
-npm run dev:web                # vite dev server, http://localhost:3000
-```
+The container has no display, so `npm run dev:desktop` (non-headless) won't show a window there — do UI/visual work against the web target while in the container, or run `npm run dev:desktop` on the host directly if you need to see the actual Electron window.
+
+Without the container: any machine with Node `^20.19.0 || >=22.12.0` (see root `package.json` `engines`), then `npm install` and the same scripts above (`dev:desktop` instead of `dev:desktop:headless` works normally there, since the host has a real display).
 
 Debug via VS Code launch configs: "Electron: dev (main + renderer)" and "Web: Chrome" (`.vscode/launch.json`). React DevTools installs itself automatically the first time you run `npm run dev:desktop` (needs network access once; silently skipped if offline, see `apps/desktop/src/main/index.ts`).
 
@@ -35,7 +32,7 @@ packages/shared   - the actual app: screens, theme, state. Both shells import fr
 - New screen/component/state -> `packages/shared/src/`. Export it from `packages/shared/src/index.ts`.
 - Each shell's `main.tsx` only wires in what's actually platform-specific (e.g. desktop passes `window.api.platform` from its preload via `contextBridge`; web doesn't have that, so it passes a literal). Don't leak platform checks into shared code — pass what differs in as a prop/param instead.
 - If a feature needs something from Node/Electron APIs the browser can't have (filesystem, native dialogs, etc.), add it to `apps/desktop/src/preload` behind `contextBridge`, expose a typed method on `window.api` (see `apps/desktop/src/preload/api.d.ts`), and have the web shell either omit that feature or provide a browser-appropriate fallback. Never `require()` Node modules from shared/renderer code directly — it won't run in the browser target and the desktop renderer is sandboxed (`sandbox: true`).
-- Once there's more than one screen, add a `packages/shared/src/screens/` folder and a router (react-router or similar) — still shared by both shells, see README TODO.
+- Once there's more than one screen, add a `packages/shared/src/screens/` folder and a router (react-router or similar) — still shared by both shells, see Roadmap below.
 
 ## 4. UI & design
 
@@ -52,7 +49,7 @@ npm run format:check    # prettier --check, what CI runs
 npm run typecheck        # tsc --noEmit, all three workspace packages
 ```
 
-Lint rules: `typescript-eslint` recommended + `react` + `react-hooks` + `react-refresh` + `jsx-a11y` (accessibility) + `eslint-config-prettier` (disables formatting rules Prettier already owns). Matched against [electron-react-boilerplate](https://github.com/electron-react-boilerplate/electron-react-boilerplate) (~24k stars) — that's where `react`/`jsx-a11y` came from, they were missing before. ESLint itself is pinned to `^9`, one major behind current, because `eslint-plugin-react`/`eslint-plugin-jsx-a11y` don't declare an ESLint 10 peer range yet — bump it once they do.
+Lint rules: `typescript-eslint` recommended + `react` + `react-hooks` + `react-refresh` + `jsx-a11y` (accessibility) + `eslint-config-prettier` (disables formatting rules Prettier already owns). ESLint itself is pinned to `^9`, one major behind current, because `eslint-plugin-react`/`eslint-plugin-jsx-a11y` don't declare an ESLint 10 peer range yet — bump it once they do.
 
 husky + lint-staged run `eslint --fix` and `prettier --write` on staged files automatically on commit — a failing lint blocks the commit. Don't bypass with `--no-verify`; fix the lint error or, if it's wrong, fix the rule in `eslint.config.mjs`.
 
@@ -64,7 +61,7 @@ Vitest. Tests live in `packages/shared` (`*.test.ts`, next to the file they test
 npm run test   # vitest run, packages/shared
 ```
 
-Add a component test (Testing Library) once there's a component worth testing beyond a store — not installed yet, see README TODO.
+Add a component test (Testing Library) once there's a component worth testing beyond a store — not installed yet, see Roadmap below.
 
 ## 7. E2E tests
 
@@ -75,7 +72,7 @@ npm run build -w apps/desktop   # e2e runs against the built app, not dev server
 npm run test:e2e -w apps/desktop
 ```
 
-CI runs this under `xvfb-run` in a separate job (`.github/workflows/ci.yml`) since GitHub's Linux runners have no display.
+CI runs this under `xvfb-run` in a separate job (`.github/workflows/ci.yml`) since GitHub's Linux runners have no display, with `ELECTRON_DISABLE_SANDBOX=1` (Electron won't run its Chromium sandbox as a non-root/non-setuid install — fine for a throwaway CI/container run, never do this for a real packaged build). Same combination in `npm run dev:desktop:headless`. `xvfb-run` also needs `xauth` installed alongside it, or it fails outright.
 
 ## 8. Build & package
 
@@ -88,6 +85,8 @@ docker compose up web      # web build served via nginx -> http://localhost:3000
 Minify: on by default for the web app (`vite build`); explicitly enabled for desktop in `apps/desktop/electron.vite.config.ts` (electron-vite defaults `minify: false`, unlike plain Vite — don't remove that config thinking it's redundant).
 
 Dev-only code (like the React DevTools installer in `main/index.ts`) must be gated on `import.meta.env.DEV`, not a runtime check like `app.isPackaged` — only the build-time flag lets Rollup actually drop the code from the packaged app instead of just skipping it at runtime.
+
+`executableName` is set explicitly in `electron-builder.yml` — the default (sanitized from the npm package name `@experiments-electron/desktop`) breaks the Linux AppImage build specifically (invalid path characters), while macOS/Windows targets don't hit it. Test Linux packaging (`npm run package:desktop` in the devcontainer) before assuming a packaging change works everywhere; it's easy to only test on macOS and miss a Linux-only failure.
 
 ## 9. Deploy
 
@@ -103,3 +102,19 @@ Bumping the desktop app version before a release: edit `version` in `apps/deskto
 
 - Desktop preload is sandboxed (`sandbox: true`) and only exposes what's explicitly listed via `contextBridge` in `apps/desktop/src/preload/index.ts`. Don't flip `sandbox` back to `false` to make something "just work" — fix it via `contextBridge` instead.
 - CSP is set in two places, deliberately different for dev vs prod: `apps/desktop/src/main/index.ts` (looser when `!app.isPackaged`, for Vite HMR) and `apps/web/nginx.conf` (prod only, no dev exception needed since nginx never serves the dev server). Keep both in sync if you tighten or loosen the policy.
+
+## 11. Roadmap / open decisions
+
+- Port modules from [Experiments-flutter](../Experiments-flutter) (`packages/features/*` -> equivalent here) once the shape of this app is proven.
+- Pick a state/view pattern properly (`zustand` right now is a placeholder). Flutter side uses Bloc/Cubit + Riverpod. Electron/web options to weigh:
+  - Redux/Flux (reducer + unidirectional flow, closest analog to Bloc)
+  - MVI with RxJS (explicit intent -> state stream)
+  - Elm-style (model/update/view, no OOP)
+  - Plain MVVM with a UI framework
+- Decide main-process vs renderer split for business logic (IPC boundary), separate question from the state pattern above.
+- Once there's more than one screen: a `screens/` folder in `packages/shared` + `react-router-dom`, still shared by both shells.
+- Code signing + auto-update (`electron-updater`) before any real distribution to testers — an unsigned auto-update channel is worse than none.
+- App icon (electron-builder uses its default one right now).
+- Component tests (Testing Library) once there's a component worth testing beyond a store.
+- Bump ESLint back to `^10` once `eslint-plugin-react`/`eslint-plugin-jsx-a11y` declare peer support for it.
+- Turborepo/Nx if `packages/*` grows beyond a couple of packages — plain npm workspaces is proportionate at this size.

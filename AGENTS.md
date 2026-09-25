@@ -12,9 +12,19 @@ Electron + web reference template, npm workspaces, no real feature yet on purpos
 
 Full structure/pitch: [README.md](README.md). Full pipeline (setup, adding a feature, testing, deploying): [CONTRIBUTING.md](CONTRIBUTING.md) — read it before making a change that touches more than one file.
 
+## Run everything in the devcontainer, not the host
+
+The user's explicit policy: `npm install`, any `npm run *`, `npx *`, or anything else that executes package code (postinstall scripts, build tooling) runs **inside the devcontainer**, not directly on the host machine — this repo pulls in hundreds of transitive npm packages, any of which can run arbitrary code at install time, and the container contains that blast radius.
+
+- Before running such a command, check for a running container: `docker ps --filter name=experiments-electron-devcontainer`.
+- If it's up, run commands inside it: `docker exec -u node experiments-electron-devcontainer bash -lc "cd /workspaces/Experiments-Electron && <command>"`. Use `-u node`, not root — root can build/package fine but Electron itself refuses to run its sandbox as root (see the gotcha below).
+- If it's not running, start it yourself rather than falling back to the host: `npx --yes @devcontainers/cli up --workspace-folder .` (same tool VS Code's Dev Containers extension uses). Rebuild instead if `.devcontainer/Dockerfile` or `devcontainer.json` changed: `npx --yes @devcontainers/cli build --workspace-folder . --no-cache` first.
+- Read-only actions (reading files, `git status`/`git log`, grepping) don't need the container — only actual package execution does.
+- If the container genuinely can't be started (Docker not running, etc.), say so and ask before falling back to the host — don't silently run `npm install` there.
+
 ## Architecture status
 
-Not decided yet, tracked in [README.md](README.md)'s TODO — don't assume a pattern (Redux/MVI/Elm/etc.) is settled, `zustand` in `packages/shared/src/store.ts` is a placeholder. If a task requires picking one, ask, don't just pick silently.
+Not decided yet, tracked in [CONTRIBUTING.md](CONTRIBUTING.md)'s Roadmap section — don't assume a pattern (Redux/MVI/Elm/etc.) is settled, `zustand` in `packages/shared/src/store.ts` is a placeholder. If a task requires picking one, ask, don't just pick silently.
 
 ## Gotchas hit building this template (don't relearn these the hard way)
 
@@ -28,6 +38,10 @@ Not decided yet, tracked in [README.md](README.md)'s TODO — don't assume a pat
 - **A dynamic `import()` gated on `app.isPackaged` still ships in the production bundle** (Rollup can't dead-code-eliminate a runtime check). Gate build-time-only imports on `import.meta.env.DEV` instead, as done for `electron-devtools-installer` in `apps/desktop/src/main/index.ts` — that branch disappears entirely from the packaged build.
 - **New screens/components/state go in `packages/shared`, never duplicated into `apps/desktop` or `apps/web`.** If you find yourself writing near-identical code in both app folders, it belongs in `packages/shared` instead.
 - **After any dependency or build-config change**, run `npm run lint && npm run typecheck && npm run build && npm run test` before considering the task done — this repo has no CI feedback loop inside a session, so these are the only checks available.
+- **`node_modules` is bind-mounted from the host by default and holds platform-specific binaries** (Electron's). Without the named volumes in `.devcontainer/devcontainer.json`, a `node_modules` built on the host leaks into the container (and back), and Electron tries to exec the wrong platform's binary — surfaces as garbage shell errors like `not found` / `Unterminated quoted string`, not an obvious "wrong binary" message.
+- **Electron refuses to run its Chromium sandbox as root**, and a fresh non-root install's `chrome-sandbox` binary isn't set up with the root-owned setuid bit it needs either. Both `npm run dev:desktop:headless` and CI's e2e step set `ELECTRON_DISABLE_SANDBOX=1` for exactly this reason — it's safe there (throwaway headless container/CI run), never do this for a real packaged build users will run.
+- **`xvfb-run` needs `xauth` installed alongside `xvfb`**, not just `xvfb` alone — missing it fails with `xauth command not found`, easy to miss since the base devcontainer image doesn't include it by default.
+- **electron-builder derives the packaged executable name from the npm package's `name` field by default** (`@experiments-electron/desktop`) — the `@`/`/` characters are invalid on Linux and only fail there (AppImage), not on macOS/Windows targets. Set `executableName` explicitly in `apps/desktop/electron-builder.yml` rather than relying on the default. This only ever surfaces if the Linux target is actually built and tested, which is easy to skip if you only test packaging on macOS.
 
 ## Other things worth knowing
 

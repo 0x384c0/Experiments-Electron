@@ -3,6 +3,18 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
-  "postCreateCommand": "npm install",
+  "runArgs": ["--name", "experiments-electron-devcontainer"],
+  // node_modules holds platform-specific binaries (electron, etc). The workspace
+  // folder itself is bind-mounted from the host, so without this, a node_modules
+  // built on the host (e.g. macOS) leaks into the Linux container and vice versa.
+  // Named volumes here keep each side's node_modules independent.
+  "mounts": [
+    "source=${localWorkspaceFolderBasename}-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
+    "source=${localWorkspaceFolderBasename}-desktop-node_modules,target=${containerWorkspaceFolder}/apps/desktop/node_modules,type=volume",
+    "source=${localWorkspaceFolderBasename}-web-node_modules,target=${containerWorkspaceFolder}/apps/web/node_modules,type=volume",
+    "source=${localWorkspaceFolderBasename}-shared-node_modules,target=${containerWorkspaceFolder}/packages/shared/node_modules,type=volume"
+  ],
+  // fresh named volumes mount as root-owned; fix that before npm (runs as `node`) writes to them
+  "postCreateCommand": "sudo chown node:node node_modules apps/desktop/node_modules apps/web/node_modules packages/shared/node_modules && npm install",
   "forwardPorts": [3000]
 }

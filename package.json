@@ -12,7 +12,7 @@
     "build": "npm run build -w apps/desktop -w apps/web",
     "typecheck": "npm run typecheck -w apps/desktop -w apps/web -w packages/shared",
     "dev:desktop": "npm run dev -w apps/desktop",
-    "dev:desktop:headless": "xvfb-run -a npm run dev -w apps/desktop",
+    "dev:desktop:headless": "ELECTRON_DISABLE_SANDBOX=1 xvfb-run -a npm run dev -w apps/desktop",
     "dev:web": "npm run dev -w apps/web",
     "start:web": "npm run build -w apps/web && npm run start -w apps/web",
     "package:desktop": "npm run package -w apps/desktop",
