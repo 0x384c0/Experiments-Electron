@@ -5,11 +5,12 @@
     "node": "^20.19.0 || >=22.12.0"
   },
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/*"
   ],
   "scripts": {
     "build": "npm run build -w apps/desktop -w apps/web",
-    "typecheck": "npm run typecheck -w apps/desktop -w apps/web",
+    "typecheck": "npm run typecheck -w apps/desktop -w apps/web -w packages/shared",
     "dev:desktop": "npm run dev -w apps/desktop",
     "dev:desktop:headless": "xvfb-run -a npm run dev -w apps/desktop",
     "dev:web": "npm run dev -w apps/web",
@@ -18,7 +19,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "npm run test -w apps/desktop -w apps/web",
+    "test": "npm run test -w packages/shared",
     "prepare": "husky"
   },
   "lint-staged": {

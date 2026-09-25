@@ -16,6 +16,11 @@ export default defineConfig({
       alias: {
         "@renderer": resolve("src/renderer/src"),
       },
+      // one React copy across app + linked @experiments-electron/shared
+      dedupe: ["react", "react-dom"],
+    },
+    optimizeDeps: {
+      exclude: ["@experiments-electron/shared"],
     },
     plugins: [react()],
     build: { minify: true },

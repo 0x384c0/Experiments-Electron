@@ -11,17 +11,16 @@
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit",
     "package": "electron-vite build && electron-builder --publish=never",
-    "test": "vitest run",
     "test:e2e": "playwright test"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@experiments-electron/shared": "*",
     "@mui/material": "^9.4.0",
     "electron-log": "^5.4.4",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0",
-    "zustand": "^5.0.15"
+    "react-dom": "^19.3.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
@@ -31,7 +30,6 @@
     "electron": "44.4.5",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
-    "vite": "^7.3.6",
-    "vitest": "^4.1.11"
+    "vite": "^7.3.6"
   }
 }

@@ -4,6 +4,7 @@ WORKDIR /repo
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY apps/web apps/web
 COPY apps/desktop/package.json apps/desktop/package.json
+COPY packages/shared packages/shared
 RUN npm ci
 RUN npm run build --workspace apps/web
 
