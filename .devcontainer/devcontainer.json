@@ -20,9 +20,19 @@
     "source=${localWorkspaceFolderBasename}-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
     "source=${localWorkspaceFolderBasename}-desktop-node_modules,target=${containerWorkspaceFolder}/apps/desktop/node_modules,type=volume",
     "source=${localWorkspaceFolderBasename}-web-node_modules,target=${containerWorkspaceFolder}/apps/web/node_modules,type=volume",
-    "source=${localWorkspaceFolderBasename}-shared-node_modules,target=${containerWorkspaceFolder}/packages/shared/node_modules,type=volume"
+    "source=${localWorkspaceFolderBasename}-shared-node_modules,target=${containerWorkspaceFolder}/packages/shared/node_modules,type=volume",
+    // isolated volume, not the host's live ~/.claude (that's this session's own state,
+    // sharing it risks two Claude Code processes fighting over the same files).
+    // Auth once inside the container, survives rebuilds from then on.
+    "source=${localWorkspaceFolderBasename}-claude-config,target=/home/node/.claude,type=volume",
+    // low-risk to share directly: same gh login works on host and in container.
+    "source=${localEnv:HOME}/.config/gh,target=/home/node/.config/gh,type=bind"
   ],
+  "containerEnv": {
+    // Claude Code also keeps ~/.claude.json outside the dir above; this folds it in too.
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude"
+  },
   // fresh named volumes mount as root-owned; fix that before npm (runs as `node`) writes to them
-  "postCreateCommand": "sudo chown node:node node_modules apps/desktop/node_modules apps/web/node_modules packages/shared/node_modules && npm install",
+  "postCreateCommand": "sudo chown node:node node_modules apps/desktop/node_modules apps/web/node_modules packages/shared/node_modules /home/node/.claude && npm install",
   "forwardPorts": [3000]
 }
