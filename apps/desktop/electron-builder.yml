@@ -1,0 +1,13 @@
+appId: com.experiments.electron
+productName: ExperimentsElectron
+directories:
+  output: release
+files:
+  - out/**/*
+mac:
+  target: dmg
+win:
+  target: nsis
+linux:
+  target: AppImage
+  category: Utility

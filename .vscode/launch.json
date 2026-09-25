@@ -2,17 +2,13 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Electron: Main",
+      "name": "Electron: dev (main + renderer)",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}/apps/desktop",
-      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
-      "windows": {
-        "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
-      },
-      "args": ["."],
-      "outputCapture": "std",
-      "preLaunchTask": "build: desktop"
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "console": "integratedTerminal"
     },
     {
       "name": "Web: Chrome",
@@ -20,7 +16,7 @@
       "request": "launch",
       "url": "http://localhost:3000",
       "webRoot": "${workspaceFolder}/apps/web",
-      "preLaunchTask": "start: web server"
+      "preLaunchTask": "dev: web server"
     }
   ]
 }

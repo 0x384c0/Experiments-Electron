@@ -5,27 +5,25 @@
       "label": "build: desktop",
       "type": "shell",
       "command": "npm run build -w apps/desktop",
-      "problemMatcher": ["$tsc"]
+      "problemMatcher": []
     },
     {
       "label": "build: web",
       "type": "shell",
       "command": "npm run build -w apps/web",
-      "problemMatcher": ["$tsc"]
+      "problemMatcher": []
     },
     {
-      "label": "start: web server",
+      "label": "dev: web server",
       "type": "shell",
-      "command": "npm run start:web",
+      "command": "npm run dev -w apps/web",
       "isBackground": true,
       "problemMatcher": {
-        "pattern": {
-          "regexp": "."
-        },
+        "pattern": { "regexp": "." },
         "background": {
           "activeOnStart": true,
           "beginsPattern": ".",
-          "endsPattern": "web app on"
+          "endsPattern": "ready in"
         }
       }
     }
