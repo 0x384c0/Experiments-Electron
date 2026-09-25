@@ -1,0 +1,17 @@
+{
+  "name": "experiments-electron",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w apps/desktop -w apps/web",
+    "start:desktop": "npm run build -w apps/desktop && npm run start -w apps/desktop",
+    "start:desktop:headless": "npm run build -w apps/desktop && xvfb-run -a npm run start -w apps/desktop",
+    "start:web": "npm run build -w apps/web && npm run start -w apps/web"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.10.0"
+  }
+}

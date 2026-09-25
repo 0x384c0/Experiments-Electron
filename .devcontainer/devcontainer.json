@@ -1,0 +1,8 @@
+{
+  "name": "experiments-electron",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "postCreateCommand": "npm install",
+  "forwardPorts": [3000]
+}
