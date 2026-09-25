@@ -18,7 +18,7 @@ npm run dev:desktop:headless   # same, under xvfb (no display, e.g. in the conta
 npm run dev:web                # vite dev server, http://localhost:3000
 ```
 
-Debug via VS Code launch configs: "Electron: dev (main + renderer)" and "Web: Chrome" (`.vscode/launch.json`).
+Debug via VS Code launch configs: "Electron: dev (main + renderer)" and "Web: Chrome" (`.vscode/launch.json`). React DevTools installs itself automatically the first time you run `npm run dev:desktop` (needs network access once; silently skipped if offline, see `apps/desktop/src/main/index.ts`).
 
 ## 2. Project structure
 
@@ -52,6 +52,8 @@ npm run format:check    # prettier --check, what CI runs
 npm run typecheck        # tsc --noEmit, all three workspace packages
 ```
 
+Lint rules: `typescript-eslint` recommended + `react` + `react-hooks` + `react-refresh` + `jsx-a11y` (accessibility) + `eslint-config-prettier` (disables formatting rules Prettier already owns). Matched against [electron-react-boilerplate](https://github.com/electron-react-boilerplate/electron-react-boilerplate) (~24k stars) — that's where `react`/`jsx-a11y` came from, they were missing before. ESLint itself is pinned to `^9`, one major behind current, because `eslint-plugin-react`/`eslint-plugin-jsx-a11y` don't declare an ESLint 10 peer range yet — bump it once they do.
+
 husky + lint-staged run `eslint --fix` and `prettier --write` on staged files automatically on commit — a failing lint blocks the commit. Don't bypass with `--no-verify`; fix the lint error or, if it's wrong, fix the rule in `eslint.config.mjs`.
 
 ## 6. Unit tests
@@ -84,6 +86,8 @@ docker compose up web      # web build served via nginx -> http://localhost:3000
 ```
 
 Minify: on by default for the web app (`vite build`); explicitly enabled for desktop in `apps/desktop/electron.vite.config.ts` (electron-vite defaults `minify: false`, unlike plain Vite — don't remove that config thinking it's redundant).
+
+Dev-only code (like the React DevTools installer in `main/index.ts`) must be gated on `import.meta.env.DEV`, not a runtime check like `app.isPackaged` — only the build-time flag lets Rollup actually drop the code from the packaged app instead of just skipping it at runtime.
 
 ## 9. Deploy
 

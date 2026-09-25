@@ -36,8 +36,17 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   log.info("app ready");
+
+  // build-time flag (not app.isPackaged): lets Rollup dead-code-eliminate this
+  // whole branch, so the devDependency never ships in the packaged app at all.
+  if (import.meta.env.DEV) {
+    const devtools = await import("electron-devtools-installer");
+    await devtools.default(devtools.REACT_DEVELOPER_TOOLS).catch((err: unknown) => {
+      log.warn("failed to install React DevTools", err);
+    });
+  }
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
