@@ -4,3 +4,7 @@ out/
 release/
 *.log
 .DS_Store
+
+# stray tsc emit next to source (tsconfigs set noEmit, this guards against a bad one)
+apps/**/src/**/*.js.map
+apps/**/src/**/*.d.ts.map
