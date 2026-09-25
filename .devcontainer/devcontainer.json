@@ -7,6 +7,11 @@
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
+  "customizations": {
+    "vscode": {
+      "extensions": ["anthropic.claude-code"]
+    }
+  },
   // node_modules holds platform-specific binaries (electron, etc). The workspace
   // folder itself is bind-mounted from the host, so without this, a node_modules
   // built on the host (e.g. macOS) leaks into the Linux container and vice versa.
