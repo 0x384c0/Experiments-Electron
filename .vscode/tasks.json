@@ -5,13 +5,29 @@
       "label": "build: desktop",
       "type": "shell",
       "command": "npm run build -w apps/desktop",
-      "problemMatcher": []
+      "problemMatcher": ["$tsc"],
+      "group": "build"
     },
     {
       "label": "build: web",
       "type": "shell",
       "command": "npm run build -w apps/web",
-      "problemMatcher": []
+      "problemMatcher": ["$tsc"],
+      "group": "build"
+    },
+    {
+      "label": "build: all",
+      "dependsOn": ["build: desktop", "build: web"],
+      "dependsOrder": "sequence",
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "package: desktop",
+      "type": "shell",
+      "command": "npm run package:desktop",
+      "problemMatcher": [],
+      "group": "build"
     },
     {
       "label": "dev: web server",
@@ -26,6 +42,81 @@
           "endsPattern": "ready in"
         }
       }
+    },
+    {
+      "label": "dev: desktop headless",
+      "type": "shell",
+      "command": "npm run dev:desktop:headless",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "." },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "electron main process built successfully"
+        }
+      }
+    },
+    {
+      "label": "lint",
+      "type": "shell",
+      "command": "npm run lint",
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "format",
+      "type": "shell",
+      "command": "npm run format",
+      "problemMatcher": []
+    },
+    {
+      "label": "format: check",
+      "type": "shell",
+      "command": "npm run format:check",
+      "problemMatcher": []
+    },
+    {
+      "label": "typecheck",
+      "type": "shell",
+      "command": "npm run typecheck",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "validate",
+      "dependsOn": ["lint", "format: check", "typecheck", "build: all", "test: unit"],
+      "dependsOrder": "sequence",
+      "problemMatcher": [],
+      "detail": "Everything CI's build job runs, in one shot"
+    },
+    {
+      "label": "test: unit",
+      "type": "shell",
+      "command": "npm run test",
+      "problemMatcher": [],
+      "group": { "kind": "test", "isDefault": true }
+    },
+    {
+      "label": "test: e2e",
+      "type": "shell",
+      "command": "npm run test:e2e -w apps/desktop",
+      "problemMatcher": [],
+      "dependsOn": ["build: desktop"],
+      "dependsOrder": "sequence",
+      "group": "test"
+    },
+    {
+      "label": "clean",
+      "type": "shell",
+      "command": "rm -rf apps/desktop/out apps/web/dist apps/desktop/release apps/desktop/test-results apps/desktop/playwright-report",
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-Command",
+          "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue apps/desktop/out, apps/web/dist, apps/desktop/release, apps/desktop/test-results, apps/desktop/playwright-report"
+        ]
+      },
+      "problemMatcher": [],
+      "detail": "Remove build/test output, not node_modules"
     }
   ]
 }
