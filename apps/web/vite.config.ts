@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
+  // set for GitHub Pages project sites (e.g. "/repo-name/"), "/" for docker/local
+  base: process.env.VITE_BASE_PATH ?? "/",
   plugins: [react()],
   server: { port: 3000 },
   resolve: {

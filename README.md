@@ -54,7 +54,12 @@ docker compose up web      # web build served via nginx, http://localhost:3000
 The web Docker image is a plain OCI image (node build stage -> nginx serve stage), deployable as-is to any container host (Azure Container Apps / App Service for Containers, ECS, Cloud Run, etc). No platform-specific config baked in.
 
 CI: [ci.yml](.github/workflows/ci.yml) runs lint + format check + typecheck + build + unit tests on push/PR, plus a separate e2e job (built app under xvfb).
-[package.yml](.github/workflows/package.yml) builds installers for mac/win/linux (matrix) on a `v*` tag or manual trigger, uploads them as artifacts for testers. No code signing configured, unsigned builds only.
+
+Deploy, all manual (`workflow_dispatch`), matching [Experiments-flutter](../Experiments-flutter/.github/workflows)'s convention of not deploying on every push:
+
+- [deploy_desktop.yml](.github/workflows/deploy_desktop.yml) — builds mac/win/linux installers (matrix), publishes them to a GitHub Release named after `apps/desktop/package.json`'s version. No code signing, unsigned builds only.
+- [deploy_web.yml](.github/workflows/deploy_web.yml) — builds the web app and publishes it to GitHub Pages. One-time manual setup: repo Settings -> Pages -> Source: "GitHub Actions".
+- [deploy_azure.yml](.github/workflows/deploy_azure.yml) — builds the web Docker image and deploys it to an Azure Container App. **Disabled until configured**: it checks for `AZURE_CREDENTIALS` and skips its steps (with a warning, not a failure) if unset. See [deploy_azure.env.example](.github/deploy_azure.env.example) for the secrets it needs (`Settings -> Secrets and variables -> Actions`).
 
 ## TODO
 

@@ -1,0 +1,45 @@
+name: deploy_azure
+
+# Disabled until Azure secrets are configured (Settings -> Secrets and variables -> Actions).
+# See .github/deploy_azure.env.example for what's needed. Runs but skips its steps until then.
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check Azure secrets are configured
+        id: check
+        run: |
+          if [ -z "${{ secrets.AZURE_CREDENTIALS }}" ]; then
+            echo "::warning::Azure secrets not configured, see .github/deploy_azure.env.example. Skipping deploy."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Azure login
+        if: steps.check.outputs.configured == 'true'
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Build and push image to ACR
+        if: steps.check.outputs.configured == 'true'
+        run: |
+          az acr build \
+            --registry "${{ secrets.AZURE_CONTAINER_REGISTRY }}" \
+            --image "experiments-electron-web:${{ github.sha }}" \
+            -f apps/web/Dockerfile .
+
+      - name: Deploy to Container Apps
+        if: steps.check.outputs.configured == 'true'
+        run: |
+          az containerapp update \
+            --name "${{ secrets.AZURE_CONTAINERAPP_NAME }}" \
+            --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
+            --image "${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/experiments-electron-web:${{ github.sha }}"
