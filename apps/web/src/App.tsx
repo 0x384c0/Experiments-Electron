@@ -1,13 +1,16 @@
+import { Button, Stack, Typography } from "@mui/material";
 import { useCounterStore } from "./store";
 
 function App() {
   const { count, increment } = useCounterStore();
 
   return (
-    <div>
-      <h1>Hello World from Web</h1>
-      <button onClick={increment}>count is {count}</button>
-    </div>
+    <Stack spacing={2} sx={{ p: 4 }}>
+      <Typography variant="h4">Hello World from Web</Typography>
+      <Button variant="contained" onClick={increment} sx={{ alignSelf: "flex-start" }}>
+        count is {count}
+      </Button>
+    </Stack>
   );
 }
 

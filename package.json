@@ -1,6 +1,9 @@
 {
   "name": "experiments-electron",
   "private": true,
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "workspaces": [
     "apps/*"
   ],
@@ -11,10 +14,29 @@
     "dev:desktop:headless": "xvfb-run -a npm run dev -w apps/desktop",
     "dev:web": "npm run dev -w apps/web",
     "start:web": "npm run build -w apps/web && npm run start -w apps/web",
-    "package:desktop": "npm run package -w apps/desktop"
+    "package:desktop": "npm run package -w apps/desktop",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run test -w apps/desktop -w apps/web",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": "eslint --fix",
+    "*.{ts,tsx,json,md,yml,yaml}": "prettier --write"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.10.0",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.12.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1",
+    "prettier": "^3.9.9",
     "typescript": "^5.7.0",
-    "@types/node": "^22.10.0"
+    "typescript-eslint": "^8.70.1"
   }
 }
