@@ -14,7 +14,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^9.4.0",
     "react": "^19.3.0",
-    "zustand": "^5.0.15"
+    "react-redux": "^9.3.0"
   },
   "devDependencies": {
     "@emotion/react": "^11.14.0",
@@ -22,7 +22,12 @@
     "@mui/material": "^9.4.0",
     "@types/react": "^19.3.0",
     "react": "^19.3.0",
-    "vitest": "^4.1.11",
-    "zustand": "^5.0.15"
+    "react-redux": "^9.3.0",
+    "vitest": "^4.1.11"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.12.0",
+    "reflect-metadata": "^0.2.2",
+    "tsyringe": "^4.10.0"
   }
 }

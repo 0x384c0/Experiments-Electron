@@ -6,6 +6,8 @@
     "lib": ["DOM", "ES2022"],
     "jsx": "react-jsx",
     "types": ["vite/client"],
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
     "noEmit": true
   },
   "include": ["src"]

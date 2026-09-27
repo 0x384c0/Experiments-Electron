@@ -14,7 +14,8 @@
     "@experiments-electron/shared": "*",
     "@mui/material": "^9.4.0",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "react-redux": "^9.3.0"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

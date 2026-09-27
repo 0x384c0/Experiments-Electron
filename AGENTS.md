@@ -8,7 +8,7 @@ Electron + web reference template, npm workspaces, no real feature yet on purpos
 
 - [apps/desktop](apps/desktop) — Electron shell (main, preload, electron-vite config, packaging).
 - [apps/web](apps/web) — browser shell (plain Vite, nginx Dockerfile).
-- [packages/shared](packages/shared) — the actual app: screens, theme, state. Both shells import from here and are otherwise thin wrappers.
+- [packages/shared](packages/shared) — the actual app, feature-sliced (`app/` composition root, `features/*/{ui,model}`, `shared/lib`). Both shells import from here and are otherwise thin wrappers. See [CONTRIBUTING.md](CONTRIBUTING.md) section 2/3 before adding or moving anything here.
 
 Full structure/pitch: [README.md](README.md). Full pipeline (setup, adding a feature, testing, deploying): [CONTRIBUTING.md](CONTRIBUTING.md) — read it before making a change that touches more than one file.
 
@@ -24,7 +24,7 @@ The user's explicit policy: `npm install`, any `npm run *`, `npx *`, or anything
 
 ## Architecture status
 
-Not decided yet, tracked in [CONTRIBUTING.md](CONTRIBUTING.md)'s Roadmap section — don't assume a pattern (Redux/MVI/Elm/etc.) is settled, `zustand` in `packages/shared/src/store.ts` is a placeholder. If a task requires picking one, ask, don't just pick silently.
+Decided: [Feature-Sliced Design](https://feature-sliced.design) layering, Redux Toolkit for state, tsyringe for DI, enforced by `eslint-plugin-boundaries` — see [CONTRIBUTING.md](CONTRIBUTING.md) section 2/3. What's still open is tracked in the Roadmap section there (main/renderer split for business logic, routing once there's a second screen). Don't silently change the state/DI pattern — it ripples through every feature; ask first.
 
 ## Gotchas hit building this template (don't relearn these the hard way)
 
@@ -42,6 +42,11 @@ Not decided yet, tracked in [CONTRIBUTING.md](CONTRIBUTING.md)'s Roadmap section
 - **Electron refuses to run its Chromium sandbox as root**, and a fresh non-root install's `chrome-sandbox` binary isn't set up with the root-owned setuid bit it needs either. Both `npm run dev:desktop:headless` and CI's e2e step set `ELECTRON_DISABLE_SANDBOX=1` for exactly this reason — it's safe there (throwaway headless container/CI run), never do this for a real packaged build users will run.
 - **`xvfb-run` needs `xauth` installed alongside `xvfb`**, not just `xvfb` alone — missing it fails with `xauth command not found`, easy to miss since the base devcontainer image doesn't include it by default.
 - **electron-builder derives the packaged executable name from the npm package's `name` field by default** (`@experiments-electron/desktop`) — the `@`/`/` characters are invalid on Linux and only fail there (AppImage), not on macOS/Windows targets. Set `executableName` explicitly in `apps/desktop/electron-builder.yml` rather than relying on the default. This only ever surfaces if the Linux target is actually built and tested, which is easy to skip if you only test packaging on macOS.
+- **`eslint-plugin-boundaries` silently no-ops without a resolver.** It needs `settings["import/resolver"]` configured (`eslint-import-resolver-typescript` here) to resolve extensionless TS imports to real file paths — without it, every dependency looks "unknown" to the plugin and the rule never fires, with no error or warning telling you why. If a boundary violation you expect to be caught isn't, check this first, not the policy itself. (`ESLINT_PLUGIN_BOUNDARIES_DEBUG=true npx eslint <file>` shows exactly how it resolved a given import, `"path": null` on the `to` side means resolution failed.)
+- **Use `{{from.x}}` template syntax in boundaries policies, not `${from.x}`** — the latter still works but is deprecated (v5→v6 migration) and prints a warning on every lint run.
+- **A feature's selectors must not import the app's `RootState`** (that's a `features -> app` edge, exactly backwards — `app` composes features, not the other way around, and the boundary rule blocks it). Type a selector against a locally-scoped state shape instead (see `HelloWorldRootState` in `helloWorldSlice.ts`).
+- **Decorator compiler options (`experimentalDecorators`, `useDefineForClassFields: false`) must be set in every tsconfig that transitively typechecks decorated code, not just the package that defines it.** `tsc` builds one program per tsconfig-consuming project, and it walks into `packages/shared`'s source through the workspace symlink — `apps/desktop`'s and `apps/web`'s own tsconfigs needed the same decorator settings once `packages/shared` started using tsyringe's `@injectable()`/`@inject()`, even though those apps never write a decorator themselves.
+- **tsyringe needs the `reflect-metadata` polyfill imported at runtime regardless of whether real `design:paramtypes` metadata gets emitted.** Vite/esbuild doesn't emit that metadata at all (a known esbuild limitation) — so every constructor injection here uses explicit `@inject(SomeToken)` rather than relying on automatic type-based resolution, which works fine without real metadata. `reflect-metadata` is still required though: `@injectable()`'s own implementation calls `Reflect.getMetadata(...)` unconditionally and throws if the polyfill was never loaded.
 
 ## Other things worth knowing
 

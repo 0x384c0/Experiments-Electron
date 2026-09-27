@@ -6,6 +6,8 @@
     "lib": ["ES2022", "DOM"],
     "jsx": "react-jsx",
     "types": ["node", "vite/client", "electron-vite/node"],
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
