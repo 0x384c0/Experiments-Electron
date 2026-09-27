@@ -4,7 +4,9 @@ import type { CurrentWeatherState } from "../model/weatherTypes";
 export function WeatherTile({ current }: { current: CurrentWeatherState }) {
   return (
     <Card sx={{ p: 2, display: "flex", flexDirection: "row", alignItems: "center", gap: 2 }}>
-      <img src={current.condition.icon} alt={current.condition.text} width={64} height={64} />
+      <Typography sx={{ fontSize: 48 }} role="img" aria-label={current.condition.text}>
+        {current.condition.icon}
+      </Typography>
       <Typography variant="h3">{current.temp}</Typography>
       <Stack sx={{ ml: "auto" }}>
         <Typography variant="body2">Precipitation: {current.precipitation}</Typography>

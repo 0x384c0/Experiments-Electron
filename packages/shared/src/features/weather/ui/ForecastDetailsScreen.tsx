@@ -51,7 +51,9 @@ export function ForecastDetailsScreen() {
         </IconButton>
         <Typography variant="h6">{day.date}</Typography>
       </Stack>
-      <img src={day.condition.icon} alt={day.condition.text} width={64} height={64} />
+      <Typography sx={{ fontSize: 48 }} role="img" aria-label={day.condition.text}>
+        {day.condition.icon}
+      </Typography>
       <Typography>Chance of rain: {day.chanceOfRain}</Typography>
       <Typography>Humidity: {day.humidity}</Typography>
       <Typography>Wind: {day.wind}</Typography>

@@ -10,7 +10,9 @@ export function ForecastTile({ day, onClick }: { day: ForecastWeatherState; onCl
       >
         <Typography sx={{ flex: 1 }}>{day.date}</Typography>
         <Typography variant="body1">{day.temp}</Typography>
-        <img src={day.condition.icon} alt={day.condition.text} width={32} height={32} />
+        <Typography sx={{ fontSize: 24 }} role="img" aria-label={day.condition.text}>
+          {day.condition.icon}
+        </Typography>
       </CardActionArea>
     </Card>
   );

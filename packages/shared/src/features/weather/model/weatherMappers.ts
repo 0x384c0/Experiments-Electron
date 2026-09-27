@@ -1,20 +1,5 @@
-import type {
-  ConditionModel,
-  ForecastItemModel,
-  ForecastModel,
-  WeatherModel,
-} from "../domain/models";
-import type {
-  ConditionState,
-  CurrentWeatherState,
-  ForecastWeatherState,
-  WeatherState,
-} from "./weatherTypes";
-
-// weatherapi.com returns protocol-relative icon URLs (`//cdn...`)
-function mapCondition(condition: ConditionModel): ConditionState {
-  return { text: condition.text, icon: condition.icon.replace("//", "https://") };
-}
+import type { ForecastItemModel, ForecastModel, WeatherModel } from "../domain/models";
+import type { CurrentWeatherState, ForecastWeatherState, WeatherState } from "./weatherTypes";
 
 function mapDate(dateEpoch: number): string {
   return new Date(dateEpoch * 1000).toLocaleDateString(undefined, {
@@ -31,7 +16,7 @@ function mapCurrent(current: WeatherModel): CurrentWeatherState {
     wind: `${current.wind} km/h`,
     humidity: `${current.humidity}%`,
     precipitation: `${current.precipitation} mm`,
-    condition: mapCondition(current.condition),
+    condition: current.condition,
   };
 }
 
@@ -43,7 +28,7 @@ function mapForecastItem(item: ForecastItemModel): ForecastWeatherState {
     chanceOfRain: `${item.chanceOfRain}%`,
     humidity: `${item.averageHumidity}%`,
     wind: `${item.maxWind} km/h`,
-    condition: mapCondition(item.condition),
+    condition: item.condition,
   };
 }
 

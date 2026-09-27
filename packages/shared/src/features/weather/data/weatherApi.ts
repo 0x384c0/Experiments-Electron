@@ -1,52 +1,49 @@
 import { injectable } from "../../../shared/lib/di";
 import type { LocationModel } from "../domain/models";
 
-const BASE_URL = "https://api.weatherapi.com/v1";
+// no API key, no signup -- https://open-meteo.com
+const BASE_URL = "https://api.open-meteo.com/v1/forecast";
 const FORECAST_DAYS = 10;
 
-export interface ConditionDto {
-  text: string;
-  icon: string;
-}
-
-export interface DayDto {
-  avghumidity: number;
-  avgtemp_c: number;
-  daily_chance_of_rain: number;
-  maxwind_kph: number;
-  condition: ConditionDto;
-}
-
-export interface ForecastDayDto {
-  date: string;
-  date_epoch: number;
-  day: DayDto;
-}
-
 export interface CurrentDto {
-  temp_c: number;
-  wind_kph: number;
-  humidity: number;
-  precip_mm: number;
-  condition: ConditionDto;
+  temperature_2m: number;
+  relative_humidity_2m: number;
+  precipitation: number;
+  wind_speed_10m: number;
+  weather_code: number;
+}
+
+export interface DailyDto {
+  time: string[];
+  temperature_2m_max: number[];
+  temperature_2m_min: number[];
+  precipitation_probability_max: number[];
+  relative_humidity_2m_mean: number[];
+  wind_speed_10m_max: number[];
+  weather_code: number[];
 }
 
 export interface ForecastResponseDto {
   current: CurrentDto;
-  forecast: { forecastday: ForecastDayDto[] };
+  daily: DailyDto;
 }
 
-// key comes from .env.example -> VITE_WEATHER_API_KEY, get a free one at weatherapi.com
 @injectable()
 export class WeatherApiClient {
   async getForecast(location: LocationModel): Promise<ForecastResponseDto> {
-    const url = new URL(`${BASE_URL}/forecast.json`);
-    const env = import.meta.env as Record<string, string | undefined>;
-    url.searchParams.set("key", env.VITE_WEATHER_API_KEY ?? "");
-    url.searchParams.set("q", `${location.latitude}, ${location.longitude}`);
-    url.searchParams.set("days", String(FORECAST_DAYS));
-    url.searchParams.set("aqi", "false");
-    url.searchParams.set("alerts", "false");
+    const url = new URL(BASE_URL);
+    url.searchParams.set("latitude", String(location.latitude));
+    url.searchParams.set("longitude", String(location.longitude));
+    url.searchParams.set(
+      "current",
+      "temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code",
+    );
+    url.searchParams.set(
+      "daily",
+      "temperature_2m_max,temperature_2m_min,precipitation_probability_max,relative_humidity_2m_mean,wind_speed_10m_max,weather_code",
+    );
+    url.searchParams.set("forecast_days", String(FORECAST_DAYS));
+    url.searchParams.set("timezone", "auto");
 
     const response = await fetch(url);
     if (!response.ok) {

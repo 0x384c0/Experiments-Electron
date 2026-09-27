@@ -12,8 +12,6 @@ export default defineConfig({
     build: { minify: true },
   },
   renderer: {
-    // one .env at repo root for both apps, not duplicated per app
-    envDir: resolve("../.."),
     resolve: {
       alias: {
         "@renderer": resolve("src/renderer/src"),
