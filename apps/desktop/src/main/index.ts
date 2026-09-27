@@ -5,9 +5,11 @@ import log from "electron-log/main";
 log.initialize();
 
 // dev needs 'unsafe-eval'/'unsafe-inline' + ws: for Vite HMR, prod does not.
+// connect-src/img-src: weatherapi.com (API + forecast icon CDN) -- add the
+// same origin here and in apps/web/nginx.conf when a feature calls a new API.
 const CSP = app.isPackaged
-  ? "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
-  : "default-src 'self' 'unsafe-eval' 'unsafe-inline' ws: http://localhost:*; style-src 'self' 'unsafe-inline'; img-src 'self' data:";
+  ? "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.weatherapi.com; connect-src 'self' https://api.weatherapi.com"
+  : "default-src 'self' 'unsafe-eval' 'unsafe-inline' ws: http://localhost:*; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.weatherapi.com; connect-src 'self' ws: http://localhost:* https://api.weatherapi.com";
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({

@@ -12,6 +12,6 @@ packages/shared   - the actual app, feature-sliced (app/features/shared). Both s
 
 ## Stack
 
-React, Redux Toolkit, tsyringe (DI), MUI, TypeScript, Vite/electron-vite, Vitest, Playwright, electron-builder, npm workspaces.
+React, react-router, Redux Toolkit, tsyringe (DI), MUI, TypeScript, Vite/electron-vite, Vitest, Playwright, electron-builder, npm workspaces.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, adding a feature, UI/design conventions, validating, tests, build, package, and deploy.

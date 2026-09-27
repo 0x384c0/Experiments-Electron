@@ -15,6 +15,8 @@ The container has no display, so `npm run dev:desktop` (non-headless) won't show
 
 Without the container: any machine with Node `^20.19.0 || >=22.12.0` (see root `package.json` `engines`), then `npm install` and the same scripts above (`dev:desktop` instead of `dev:desktop:headless` works normally there, since the host has a real display).
 
+Copy `.env.example` to `.env` at the repo root and fill in real values (currently just a free [weatherapi.com](https://www.weatherapi.com/) key) — without it, the weather feature loads and shows a clear error state rather than data, which is fine for working on anything else.
+
 Debug via VS Code launch configs: "Electron: dev (main + renderer)" and "Web: Chrome" (`.vscode/launch.json`). React DevTools installs itself automatically the first time you run `npm run dev:desktop` (needs network access once; silently skipped if offline, see `apps/desktop/src/main/index.ts`).
 
 ## 2. Project structure
@@ -24,17 +26,21 @@ apps/desktop      - Electron shell (main, preload, electron-vite config, packagi
 apps/web          - browser shell (plain Vite, nginx Dockerfile)
 packages/shared   - the actual app. Both shells import from here.
   src/
-    app/          - composition root: App.tsx (composes feature screens), store.ts
-                    (combines feature reducers), theme.ts. Depends on features/shared,
-                    never the other way around.
+    app/          - composition root: App.tsx (routes + composes feature screens),
+                    store.ts (combines feature reducers), theme.ts. Depends on
+                    features/shared, never the other way around.
     features/
       <feature>/
         ui/         - screens/components (the "presentation" layer)
-        model/      - state (Redux slice) + injectable services (the "domain"
-                      layer -- data layer goes here too once a feature needs one)
+        model/      - state (Redux slice) + presentation-state mappers
+        domain/     - use cases (interactor) + repository + domain models --
+                      add this once a feature actually calls an external API
+                      or has business rules beyond formatting for display
+        data/       - API client / DTOs -- same, add once there's a real API
     shared/
       lib/          - cross-cutting infra any feature can depend on: the DI
-                      container (di.ts), generic hooks (useInjection.ts)
+                      container (di.ts), typed Redux hooks (hooks.ts), the
+                      generic async-fetch-into-a-slice helper (asyncResource.ts)
 ```
 
 This is [Feature-Sliced Design](https://feature-sliced.design) (a documented methodology, not house convention): a "feature" is a self-contained slice with its own `ui`/`model`, addable and removable independently. It's enforced, not just documented — `eslint.config.mjs`'s `boundaries/dependencies` rule fails the build if a feature imports another feature's internals directly, or if anything imports "up" into `app`. If you find yourself needing to reach into another feature, either promote the shared piece into `shared/` or compose them at the `app` layer.
@@ -43,14 +49,18 @@ This is [Feature-Sliced Design](https://feature-sliced.design) (a documented met
 
 ## 3. Adding a feature
 
-Follow the existing `features/hello-world` slice as the template:
+Follow the existing `features/weather` slice as the template (it has all four layers, including the DI chain and an async-fetch slice):
 
-- **`ui/`**: the screen/component. Resolve dependencies via `useInjection(SomeService)` (from `shared/lib/di`), never reach for `window.api` or a platform check directly — inject an abstraction instead (see `HelloWorldService` for the pattern: it depends on `PlatformInfo`, an interface, not a concrete platform check).
-- **`model/`**: a Redux Toolkit slice (`createSlice`) for state, plus any `@injectable()` service classes (tsyringe) for logic that needs a dependency injected. A slice's selectors take a locally-scoped state shape (see `HelloWorldRootState` in `helloWorldSlice.ts`), never the app's full `RootState` — a feature must not import from `app` (see the boundary rule above; this is what it's actually there to prevent).
-- **`model/*.test.ts`**: co-located unit tests, next to the slice/service they test.
+- **`data/`**: the API client (`weatherApi.ts`) — DTOs matching the wire format, a plain `@injectable()` class wrapping `fetch`. Reads config (API keys) via `import.meta.env.VITE_*`, cast through `Record<string, string | undefined>` (Vite's `ImportMetaEnv` type isn't augmented for custom vars, casting is simpler than adding a cross-program ambient `.d.ts` — see AGENTS.md). Real secrets go in `.env` (gitignored); document the var in the root `.env.example`.
+- **`domain/`**: domain models (plain TS interfaces, not DTOs — the repository maps DTO -> domain), a repository (`@injectable()`, wraps the API client, does the DTO-to-domain mapping), an interactor (`@injectable()`, wraps the repository — the one thing a slice actually calls). Only split repository/interactor into separate injectable classes if there's a real reason to (matches source app fidelity here); a trivial feature can collapse them.
+- **`model/`**: a Redux Toolkit slice. For anything that fetches async data, use `initialAsyncResourceState`/`addAsyncResourceCases` from `shared/lib/asyncResource.ts` instead of hand-rolling loading/error/data state — see `weatherSlice.ts`. The thunk resolves DI classes directly (`container.resolve(WeatherInteractor)`) — thunks aren't components, no `useInjection`-style hook applies. Presentation-state mappers (formatting domain data for display) also live here, as plain functions, not injectable classes — nothing swaps them at runtime.
+- **Selectors take a locally-scoped state shape** (see `WeatherRootState` in `weatherSlice.ts`), never the app's full `RootState` — a feature must not import from `app` (see the boundary rule above; this is what it's actually there to prevent).
+- **Dispatching a thunk** needs `useAppDispatch` from `shared/lib/hooks.ts`, not plain `useDispatch()` — the plain version doesn't know the store has thunk middleware and won't type-check `dispatch(someThunk())`. `useAppDispatch` is generic on purpose (doesn't reference `AppDispatch` from `app/store`, which would be the same forbidden `features -> app` edge).
+- **`*.test.ts`**: co-located unit tests, next to the file they test. Prefer testing pure mappers and reducers (fast, no DI/network); resolving through the DI container in a test needs registering real or fake implementations first — not set up yet, do that when a feature actually needs it.
 - **Register the slice** in `app/store.ts`'s `configureStore({ reducer: {...} })`.
-- **Register the screen** in `app/App.tsx` (composes it in, gains a router here once there's a second screen — see Roadmap).
-- **Each shell's `main.tsx`** registers the platform-specific DI implementations before rendering (`container.registerInstance(SomeToken, ...)`) — that's the _only_ place platform differences should exist. If a feature needs something from Node/Electron the browser can't have (filesystem, native dialogs, etc.), add it to `apps/desktop/src/preload` behind `contextBridge`, expose it on `window.api`, and register a DI token backed by it in desktop's `main.tsx` — the web shell registers a browser-appropriate implementation (or omits the feature) behind the same token. Never `require()` Node modules from feature code directly — it won't run in the browser target, and the desktop renderer is sandboxed (`sandbox: true`).
+- **Register the screen(s)** in `app/App.tsx`'s `<Routes>` — this is the one place allowed to know about every feature (it composes them), and the one place a router lives (see below).
+- **If a feature needs something from Node/Electron the browser can't have** (filesystem, native dialogs, secure storage, etc.), add it to `apps/desktop/src/preload` behind `contextBridge`, expose it on `window.api`, and register a DI token backed by it in desktop's `main.tsx` — the web shell registers a browser-appropriate implementation (or omits the feature) behind the same token. This is currently unused (no feature needs it yet) but is how it's wired when one does. Never `require()` Node modules from feature code directly — it won't run in the browser target, and the desktop renderer is sandboxed (`sandbox: true`).
+- **Calling any external API**: extend the CSP's `connect-src` (and `img-src` if it serves images) in both `apps/desktop/src/main/index.ts` and `apps/web/nginx.conf` — CSP defaults `connect-src` to `default-src 'self'`, so a fresh `fetch()` to a new origin fails as an opaque "Failed to fetch" in the packaged app with no indication it's a CSP block, not a network problem.
 
 **Where business logic lives — decided**: default is `packages/shared` (runs in the renderer for desktop, directly in the browser for web — same code, no rework, no main process involved for either target). Only punch a hole through `contextBridge` into the main process when a piece of a feature genuinely can't run in a browser sandbox:
 
@@ -60,11 +70,12 @@ Follow the existing `features/hello-world` slice as the template:
 
 That's a per-piece exception, not a per-feature one — keep as much of a feature in `packages/shared` as actually works in a browser, and only wall off the specific part that can't. The alternative (business logic living in the main process, renderer just dispatching over IPC) was considered and rejected: it would require a real backend server behind every such feature for the web target to have anything to talk to, which breaks the one-shared-codebase premise this template is built around.
 
-- Once there's more than one screen: add `react-router` at the `app` layer — still shared by both shells, see Roadmap below.
+**Routing**: `react-router` (`<Routes>` in `app/App.tsx`), but the actual `Router` component is shell-specific, wired in each `main.tsx`, not in shared code — desktop uses `HashRouter`, web uses `BrowserRouter`. The packaged desktop app is loaded via `file://`, which has no server to resolve a browser-history path on refresh; `HashRouter` sidesteps that entirely by keeping the route in the URL fragment. Don't switch desktop to `BrowserRouter` to "match" web — they're intentionally different here, same as the per-shell DI registration.
 
 ## 4. UI & design
 
-- MUI (Material Design). Theme lives at `packages/shared/src/theme.ts`, wrap new roots in the same `ThemeProvider`/`CssBaseline` pattern used in both `main.tsx` files.
+- MUI (Material Design). Theme lives at `packages/shared/src/app/theme.ts`, wrap new roots in the same `ThemeProvider`/`CssBaseline` pattern used in both `main.tsx` files.
+- `Stack`'s `alignItems`/`justifyContent`/etc. aren't part of its own props in this MUI version — pass them through `sx` instead (`<Stack sx={{ alignItems: "center" }}>`, not `<Stack alignItems="center">`). Only `direction`/`spacing`/`divider` are real `Stack` props; check `node_modules/@mui/material/Stack/Stack.d.ts` if unsure rather than assuming an older MUI API.
 - Keep style-related CSS-in-JS (`sx` prop, `styled()`) — that's what the CSP's `style-src 'unsafe-inline'` in both `apps/desktop/src/main/index.ts` and `apps/web/nginx.conf` already accounts for. Don't add inline `<script>` or `eval`-based styling; that needs a CSP change (`script-src`), which is a bigger call.
 - No design library beyond MUI. If you need a component MUI doesn't have, build it in `packages/shared`, don't add another UI kit without discussing it first — Electron templates get bloated fast.
 
@@ -85,7 +96,7 @@ husky + lint-staged run `eslint --fix` and `prettier --write` on staged files au
 
 ## 6. Unit tests
 
-Vitest. Tests live next to the file they test, inside the feature's `model/` (e.g. `helloWorldSlice.test.ts`) since that's where the actual logic is — the two app shells are just wiring and don't carry test-worthy logic on their own.
+Vitest. Tests live next to the file they test (e.g. `weatherMappers.test.ts`, `weatherSlice.test.ts`) since that's where the actual logic is — the two app shells are just wiring and don't carry test-worthy logic on their own.
 
 ```bash
 npm run test   # vitest run, packages/shared
@@ -135,8 +146,8 @@ Bumping the desktop app version before a release: edit `version` in `apps/deskto
 
 ## 11. Roadmap / open decisions
 
-- Port real features into `packages/shared/src/features/*` — the ground is prepared (layering, DI, state pattern, main/renderer split), this is the actual next step.
-- Once there's more than one screen: `react-router` at the `app` layer, still shared by both shells.
+- `home` + `weather` are ported (`packages/shared/src/features/`); continue porting the remaining features from the source app one at a time, following the `weather` slice as the template.
+- Home's tabs are hardcoded in `app/App.tsx` (just `Weather` right now). Revisit once there are enough features to need a side drawer / secondary-nav split (the source app's actual shape: 3 bottom-tab destinations + a handful of drawer-only ones) rather than growing the tab bar indefinitely.
 - Code signing + auto-update (`electron-updater`) before any real distribution to testers — an unsigned auto-update channel is worse than none.
 - App icon (electron-builder uses its default one right now).
 - Component tests (Testing Library) once there's a component worth testing beyond a store.

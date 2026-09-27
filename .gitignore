@@ -7,6 +7,10 @@ playwright-report/
 *.log
 .DS_Store
 
+# real secrets -- .env.example is the tracked template
+.env
+.env.local
+
 # stray tsc emit next to source (tsconfigs set noEmit, this guards against a bad one)
 apps/**/src/**/*.js.map
 apps/**/src/**/*.d.ts.map

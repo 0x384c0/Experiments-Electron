@@ -1,9 +1,9 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { helloWorldReducer } from "../features/hello-world/model/helloWorldSlice";
+import { weatherReducer } from "../features/weather/model/weatherSlice";
 
 export const store = configureStore({
   reducer: {
-    helloWorld: helloWorldReducer,
+    weather: weatherReducer,
   },
 });
 
