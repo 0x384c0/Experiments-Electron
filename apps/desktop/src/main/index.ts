@@ -5,11 +5,11 @@ import log from "electron-log/main";
 log.initialize();
 
 // dev needs 'unsafe-eval'/'unsafe-inline' + ws: for Vite HMR, prod does not.
-// connect-src: open-meteo.com (weather API) -- add a new origin here and in
-// apps/web/nginx.conf whenever a feature calls a new external API.
+// connect-src: open-meteo.com (weather) + api.stackexchange.com (questions)
+// -- add a new origin here and in apps/web/nginx.conf per external API added.
 const CSP = app.isPackaged
-  ? "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.open-meteo.com"
-  : "default-src 'self' 'unsafe-eval' 'unsafe-inline' ws: http://localhost:*; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: http://localhost:* https://api.open-meteo.com";
+  ? "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.open-meteo.com https://api.stackexchange.com"
+  : "default-src 'self' 'unsafe-eval' 'unsafe-inline' ws: http://localhost:*; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: http://localhost:* https://api.open-meteo.com https://api.stackexchange.com";
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
