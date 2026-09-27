@@ -37,7 +37,7 @@ packages/shared   - the actual app. Both shells import from here.
                       container (di.ts), generic hooks (useInjection.ts)
 ```
 
-This is [Feature-Sliced Design](https://feature-sliced.design) (a documented methodology, not house convention), mapped onto this Flutter-ported app's original `presentation`/`domain`/`data`-per-feature + DI shape: a "feature" here is the equivalent of a Flutter feature package. It's enforced, not just documented — `eslint.config.mjs`'s `boundaries/dependencies` rule fails the build if a feature imports another feature's internals directly, or if anything imports "up" into `app`. If you find yourself needing to reach into another feature, either promote the shared piece into `shared/` or compose them at the `app` layer.
+This is [Feature-Sliced Design](https://feature-sliced.design) (a documented methodology, not house convention): a "feature" is a self-contained slice with its own `ui`/`model`, addable and removable independently. It's enforced, not just documented — `eslint.config.mjs`'s `boundaries/dependencies` rule fails the build if a feature imports another feature's internals directly, or if anything imports "up" into `app`. If you find yourself needing to reach into another feature, either promote the shared piece into `shared/` or compose them at the `app` layer.
 
 `packages/shared` has no build step — Vite compiles its TS/TSX straight from source through the npm workspace symlink, exactly like app code, so editing it hot-reloads in both shells at once. Never duplicate a component into `apps/desktop` or `apps/web` — if both platforms need it, it belongs in `packages/shared`; if only one does, it's platform chrome and stays in that app's `main.tsx`/`index.html`/main-process code.
 
@@ -111,7 +111,7 @@ Dev-only code (like the React DevTools installer in `main/index.ts`) must be gat
 
 ## 9. Deploy
 
-All deploy workflows are manual (`workflow_dispatch`), not triggered on push — matching [Experiments-flutter](../Experiments-flutter/.github/workflows)'s convention.
+All deploy workflows are manual (`workflow_dispatch`), not triggered on push.
 
 - **[deploy_desktop.yml](.github/workflows/deploy_desktop.yml)** — matrix-builds mac/win/linux installers, publishes them to one GitHub Release named from `apps/desktop/package.json`'s version. Unsigned builds, no code signing configured.
 - **[deploy_web.yml](.github/workflows/deploy_web.yml)** — builds the web app and publishes it to GitHub Pages. One-time manual repo setup: Settings -> Pages -> Source: "GitHub Actions".
@@ -126,7 +126,7 @@ Bumping the desktop app version before a release: edit `version` in `apps/deskto
 
 ## 11. Roadmap / open decisions
 
-- Port modules from [Experiments-flutter](../Experiments-flutter) (`packages/features/*` -> equivalent `packages/shared/src/features/*` here) — the ground is prepared (layering, DI, state pattern), this is the actual next step.
+- Port real features into `packages/shared/src/features/*` — the ground is prepared (layering, DI, state pattern), this is the actual next step.
 - Decide main-process vs renderer split for business logic (IPC boundary) as real features surface a need for it — orthogonal to the layering/DI/state decisions already made.
 - Once there's more than one screen: `react-router` at the `app` layer, still shared by both shells.
 - Code signing + auto-update (`electron-updater`) before any real distribution to testers — an unsigned auto-update channel is worse than none.

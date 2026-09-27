@@ -54,4 +54,4 @@ Decided: [Feature-Sliced Design](https://feature-sliced.design) layering, Redux 
 
 - Minimal third-party libs on purpose (explicit project goal) — don't add a new dependency (state lib, UI kit, router, etc.) without a concrete need in front of you; note it as a TODO instead if it's speculative.
 - Security posture is deliberate, not default: sandboxed preload + CSP (desktop via main process, web via nginx). See [CONTRIBUTING.md](CONTRIBUTING.md) section 10 before touching either.
-- Deploy workflows are manual (`workflow_dispatch`) by convention, matching [Experiments-flutter](../Experiments-flutter)'s `.github/workflows` — don't add push-triggered deploys without asking.
+- Deploy workflows are manual (`workflow_dispatch`) by convention — don't add push-triggered deploys without asking.
