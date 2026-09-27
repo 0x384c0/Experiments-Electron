@@ -24,7 +24,7 @@ The user's explicit policy: `npm install`, any `npm run *`, `npx *`, or anything
 
 ## Architecture status
 
-Decided: [Feature-Sliced Design](https://feature-sliced.design) layering, Redux Toolkit for state, tsyringe for DI, enforced by `eslint-plugin-boundaries` — see [CONTRIBUTING.md](CONTRIBUTING.md) section 2/3. What's still open is tracked in the Roadmap section there (main/renderer split for business logic, routing once there's a second screen). Don't silently change the state/DI pattern — it ripples through every feature; ask first.
+Decided: [Feature-Sliced Design](https://feature-sliced.design) layering, Redux Toolkit for state, tsyringe for DI, enforced by `eslint-plugin-boundaries` — see [CONTRIBUTING.md](CONTRIBUTING.md) section 2/3. Also decided: business logic defaults to `packages/shared` (renderer + web both, no main process involved), main-process/`contextBridge` is a per-piece exception only for native access, security-sensitive work, or heavy compute that would block the UI thread — see section 3. What's still open is tracked in the Roadmap section there (routing once there's a second screen). Don't silently change the state/DI/logic-placement pattern — it ripples through every feature; ask first.
 
 ## Gotchas hit building this template (don't relearn these the hard way)
 

@@ -51,6 +51,15 @@ Follow the existing `features/hello-world` slice as the template:
 - **Register the slice** in `app/store.ts`'s `configureStore({ reducer: {...} })`.
 - **Register the screen** in `app/App.tsx` (composes it in, gains a router here once there's a second screen — see Roadmap).
 - **Each shell's `main.tsx`** registers the platform-specific DI implementations before rendering (`container.registerInstance(SomeToken, ...)`) — that's the _only_ place platform differences should exist. If a feature needs something from Node/Electron the browser can't have (filesystem, native dialogs, etc.), add it to `apps/desktop/src/preload` behind `contextBridge`, expose it on `window.api`, and register a DI token backed by it in desktop's `main.tsx` — the web shell registers a browser-appropriate implementation (or omits the feature) behind the same token. Never `require()` Node modules from feature code directly — it won't run in the browser target, and the desktop renderer is sandboxed (`sandbox: true`).
+
+**Where business logic lives — decided**: default is `packages/shared` (runs in the renderer for desktop, directly in the browser for web — same code, no rework, no main process involved for either target). Only punch a hole through `contextBridge` into the main process when a piece of a feature genuinely can't run in a browser sandbox:
+
+- native OS access (filesystem, native dialogs, secure storage/keychain, a local DB file),
+- security-sensitive work that shouldn't execute in the renderer's context at all,
+- CPU-heavy work that would block the UI thread (renderer is single-threaded, same as a browser tab).
+
+That's a per-piece exception, not a per-feature one — keep as much of a feature in `packages/shared` as actually works in a browser, and only wall off the specific part that can't. The alternative (business logic living in the main process, renderer just dispatching over IPC) was considered and rejected: it would require a real backend server behind every such feature for the web target to have anything to talk to, which breaks the one-shared-codebase premise this template is built around.
+
 - Once there's more than one screen: add `react-router` at the `app` layer — still shared by both shells, see Roadmap below.
 
 ## 4. UI & design
@@ -126,8 +135,7 @@ Bumping the desktop app version before a release: edit `version` in `apps/deskto
 
 ## 11. Roadmap / open decisions
 
-- Port real features into `packages/shared/src/features/*` — the ground is prepared (layering, DI, state pattern), this is the actual next step.
-- Decide main-process vs renderer split for business logic (IPC boundary) as real features surface a need for it — orthogonal to the layering/DI/state decisions already made.
+- Port real features into `packages/shared/src/features/*` — the ground is prepared (layering, DI, state pattern, main/renderer split), this is the actual next step.
 - Once there's more than one screen: `react-router` at the `app` layer, still shared by both shells.
 - Code signing + auto-update (`electron-updater`) before any real distribution to testers — an unsigned auto-update channel is worse than none.
 - App icon (electron-builder uses its default one right now).
