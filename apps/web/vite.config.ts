@@ -5,7 +5,9 @@ export default defineConfig({
   // set for GitHub Pages project sites (e.g. "/repo-name/"), "/" for docker/local
   base: process.env.VITE_BASE_PATH ?? "/",
   plugins: [react()],
-  server: { port: 3000 },
+  // host: true binds 0.0.0.0 -- without it, in a container this can end up
+  // IPv6-loopback-only ([::1]), which VS Code's port forwarding can't reach
+  server: { port: 3000, host: true },
   resolve: {
     // one React copy across app + linked @experiments-electron/shared
     dedupe: ["react", "react-dom"],
