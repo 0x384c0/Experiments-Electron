@@ -7,7 +7,22 @@ permissions:
   contents: write
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.next.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compute next patch version
+        id: next
+        run: |
+          version=$(node -p "const [a, b, c] = require('./apps/desktop/package.json').version.split('.'); [a, b, +c + 1].join('.')")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: version
     strategy:
       fail-fast: false
       matrix:
@@ -33,6 +48,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Set version
+        run: npm version ${{ needs.version.outputs.version }} --no-git-tag-version --no-workspaces-update -w apps/desktop
+
       - name: Build installer
         run: npm run package:desktop
 
@@ -52,8 +70,10 @@ jobs:
           if-no-files-found: error
 
   release:
-    needs: build
+    needs: [version, build]
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
 
     steps:
       - name: Checkout repository
@@ -64,16 +84,22 @@ jobs:
         with:
           path: release
 
-      - name: Extract version from package.json
+      - name: Commit version bump and tag
         run: |
-          version=$(node -p "require('./apps/desktop/package.json').version")
-          echo "version=$version" >> "$GITHUB_ENV"
+          npm version "$VERSION" --no-git-tag-version --no-workspaces-update -w apps/desktop
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          git config user.name "github-actions[bot]"
+          git config user.email "41898783+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Release desktop v$VERSION"
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git tag "v$VERSION"
+          git push --atomic origin "HEAD:$GITHUB_REF_NAME" "v$VERSION"
 
       - name: Create GitHub Release and upload installers
         run: |
-          gh release create "v${{ env.version }}" release/*/* \
-            --title "Desktop v${{ env.version }}" \
+          gh release create "v$VERSION" release/*/* \
+            --verify-tag \
+            --title "Desktop v$VERSION" \
             --notes "Unsigned build. See README for install instructions."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
