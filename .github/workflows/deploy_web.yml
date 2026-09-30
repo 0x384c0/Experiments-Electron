@@ -29,7 +29,8 @@ jobs:
         run: npm ci
 
       - name: Build web
-        run: npm run build -w apps/web
+        # To make deep links and refresh work on Pages, serve index.html as 404.html.
+        run: npm run build -w apps/web && cp apps/web/dist/index.html apps/web/dist/404.html
         env:
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
 
